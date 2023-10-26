@@ -1,0 +1,237 @@
+---
+title: "Q3_Q10"
+author: "Aishwarya Tiwari"
+date: "2023-04-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tm)
+library(wordcloud)
+library(dplyr)
+setwd("~/Desktop/Course Notes/ACC 882-Project Management/Project/Data")
+```
+
+## Define the category
+
+```{r Add_to_basket}
+setwd("~/Desktop/Course Notes/ACC 882-Project Management/Project/Data")
+shopper=read.csv("export_shopper.txt",header=TRUE,sep="\t")
+shopper=shopper%>%arrange(panelistid,eventtimeutc)
+catshopper=shopper%>%filter(category %in% c("Sports & Outdoors","Shoes"))
+index1=grepl(" exercise ",tolower(shopper$productname))
+index2=grepl(" fitness ",tolower(shopper$productname))
+index3=grepl(" gym ",tolower(shopper$productname))
+index4=grepl(" health ",tolower(shopper$productname))
+index5=grepl(" yoga ",tolower(shopper$productname))
+index6=grepl(" workout ",tolower(shopper$productname))
+index7=grepl(" fitness equipment ",tolower(shopper$productname))
+index8=grepl(" nutrition ",tolower(shopper$productname))
+catshopper2=shopper[index1|index2|index3|index4|index5|index6|index7|index8,]
+index9=grepl(" household",tolower(catshopper2$productname))
+catshopper2=catshopper2[!index9,]
+catshopper=rbind(catshopper,catshopper2)
+catshopper=catshopper[!duplicated(catshopper),]
+rm(catshopper2)
+
+catshopper$shopperdate=substring(catshopper$eventtimeutc,first=1,last=10)
+catshopper$shoppertime=strptime(catshopper$eventtimeutc,"%Y-%m-%d %H:%M:%S",tz="UTC")
+catshopper=catshopper%>%select(-starts_with("eventtime"))
+
+write.table(catshopper,"catshopper.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+purchase=catshopper%>%filter(eventtype=="Purchase")%>%
+  arrange(panelistid,shoppertime)%>%
+  select(panelistid,shoppertime,shopperdate,productname)
+write.table(purchase,"purchase.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+
+# We have 1140 purchases with 590 unique panelist ID
+users=purchase%>%group_by(panelistid)%>%summarize()
+```
+
+## SEO strategies
+
+#### Shopppr Data || Add to basket
+
+```{r Add_to_basket}
+#Add to Basket by panelistids who had purchased a product in shopper table
+#preprocesssing
+data_wc = read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/catshopper.txt",header=TRUE,sep="\t")
+data_wc = data_wc%>%filter(eventtype=="Add to Basket")
+my_corpus=Corpus(VectorSource(data_wc$productname))
+my_corpus[[1]][[1]]
+getTransformations()
+my_corpus = tm_map(my_corpus, content_transformer(tolower))
+my_corpus = tm_map(my_corpus,removeWords,stopwords("english"))
+my_corpus = tm_map(my_corpus, removeWords, c("amp"))
+my_corpus = tm_map(my_corpus, removePunctuation)
+my_corpus = tm_map(my_corpus, removeNumbers)
+my_corpus = tm_map(my_corpus, stripWhitespace)
+
+#construct the document term matrix
+mat=TermDocumentMatrix(my_corpus)
+mat=as.matrix(mat)
+v = sort(rowSums(mat),decreasing=TRUE)
+
+#Word cloud
+par(mar = c(5, 5, 5, 5))
+wordcloud(word = names(v),freq = v,max.words = 150,random.order = FALSE, min.freq = 5, color = brewer.pal(8,'Dark2'),scale = c(5,0.3))
+```
+#### Summary of Shopppr Data || Add to basket
+
+```{r}
+#Summary Statistics
+df = data.frame(v)
+head(df,20)
+```
+
+#### Shopppr Data || Purchase
+
+```{r Purchase}
+#Add to Basket by panelistids who had purchased a product
+#preprocesssing
+data_wc = read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/catshopper.txt",header=TRUE,sep="\t")
+data_wc = data_wc%>%filter(eventtype=="Purchase")
+my_corpus=Corpus(VectorSource(data_wc$productname))
+my_corpus[[1]][[1]]
+getTransformations()
+my_corpus = tm_map(my_corpus, content_transformer(tolower))
+my_corpus = tm_map(my_corpus,removeWords,stopwords("english"))
+my_corpus = tm_map(my_corpus, removeWords, c("amp"))
+my_corpus = tm_map(my_corpus, removePunctuation)
+my_corpus = tm_map(my_corpus, removeNumbers)
+my_corpus = tm_map(my_corpus, stripWhitespace)
+
+#construct the document term matrix
+mat=TermDocumentMatrix(my_corpus)
+mat=as.matrix(mat)
+v = sort(rowSums(mat),decreasing=TRUE)
+
+#Word cloud
+par(mar = c(5, 5, 5, 5))
+wordcloud(word = names(v),freq = v,max.words = 150,random.order = FALSE, min.freq = 5, color = brewer.pal(8,'Dark2'),scale = c(5,0.3))
+```
+#### Summary of Shopppr Data || Purchase
+
+```{r}
+#Summary Statistics
+df = data.frame(v)
+head(df,20)
+```
+
+#### Web Data
+
+```{r web_table}
+#Web search term results by panelistids who had purchased a product in web table
+#preprocesssing
+data_wc = read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/relatedweb.txt",header=TRUE,sep="\t")
+my_corpus=Corpus(VectorSource(data_wc$searchterm))
+my_corpus[[1]][[1]]
+getTransformations()
+my_corpus = tm_map(my_corpus, content_transformer(tolower))
+my_corpus = tm_map(my_corpus,removeWords,stopwords("english"))
+my_corpus = tm_map(my_corpus, removePunctuation)
+my_corpus = tm_map(my_corpus, removeNumbers)
+my_corpus = tm_map(my_corpus, stripWhitespace)
+
+#construct the document term matrix
+mat=TermDocumentMatrix(my_corpus)
+mat=as.matrix(mat)
+v = sort(rowSums(mat),decreasing=TRUE)
+
+#Word cloud
+par(mar = c(5, 5, 5, 5))
+wordcloud(word = names(v),freq = v,max.words = 150,random.order = FALSE, min.freq = 5, color = brewer.pal(8,'Dark2'),scale = c(5,0.3))
+```
+#### Summary of Web Data
+
+```{r}
+#Summary Statistics
+df = data.frame(v)
+head(df,20)
+```
+
+#### Purchase journey: Is Social Media driving our users
+
+```{r}
+# Social data within 0-6 hours of purchase
+relatedsocial=read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/relatedsocial.txt",header=TRUE,sep="\t")
+
+advertisers = sqldf('SELECT relatedsocial.advertiser, COUNT(*) AS Number_of_ads
+      FROM purchase 
+      INNER JOIN relatedsocial ON purchase.panelistid = relatedsocial.panelistid 
+      AND purchase.shopperdate = relatedsocial.shopperdate
+      GROUP BY relatedsocial.advertiser
+      ORDER BY Number_of_ads DESC
+      LIMIT 20')
+write.table(advertisers,"advertisers.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+
+```
+
+#### Purchase journey of super users
+
+```{r}
+setwd("~/Desktop/Course Notes/ACC 882-Project Management/Project/Data")
+library(readxl)
+library(sqldf)
+superusers = read_excel("SuperUsers.xlsx")
+catshopper = read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/catshopper.txt",header=TRUE,sep="\t")
+supershopper = sqldf("SELECT superusers.*,catshopper.eventtype, catshopper.productname, catshopper.category, catshopper.shopperdate,	catshopper.shoppertime,catshopper.searchterms
+                     FROM superusers
+                     LEFT JOIN catshopper
+                     ON superusers.panelistid = catshopper.panelistid
+                     ORDER BY superusers.Count DESC")
+num_views = supershopper %>% group_by(panelistid,eventtype) %>% summarise(counts = n())
+write.table(num_views,"num_views.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+
+my_data = supershopper %>% select(userid = panelistid, event.type = eventtype, product.name=productname, shopper.date = shopperdate, shopper.time = shoppertime)
+my_data$datetime = as.POSIXct(paste(my_data$shopper.date, my_data$shopper.time))
+unique_combinations = unique(my_data[, c("userid", "event.type", "product.name")])
+earliest_datetimes = aggregate(datetime ~ userid + product.name + event.type, data = my_data, FUN = min)
+merged_data = merge(unique_combinations, earliest_datetimes, by = c("userid", "product.name", "event.type"))
+wide_data = reshape(merged_data, idvar = c("userid", "product.name"), timevar = "event.type", direction = "wide")
+colnames(wide_data) = c("userid", "product.name", "first.viewed", "first.added.to.basket", "first.purchased")
+write.table(wide_data,"wide_data.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+
+purchased_items <- subset(my_data, event.type == "Purchase")
+merged_purchased = merge(purchased_items, wide_data, by = c("userid", "product.name"))
+merged_purchased$diff.added.to.basket = difftime(merged_purchased$first.purchased, merged_purchased$first.added.to.basket)
+merged_purchased$diff.viewed = difftime(merged_purchased$first.purchased, merged_purchased$first.viewed)
+write.table(merged_purchased,"merged_purchased.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+```
+
+#### Digital FootPrint: Most common app categories
+
+```{r}
+# App data within 0-6 hours of purchase
+sqldf('SELECT relatedapp.appcategory, AVG(sessionduration) as timespent
+      FROM purchase 
+      INNER JOIN relatedapp ON purchase.panelistid = relatedapp.panelistid 
+      AND purchase.shopperdate = relatedapp.shopperdate
+      GROUP BY relatedapp.appcategory
+      ORDER BY timespent DESC
+      LIMIT 20')
+```
+
+#### Digital FootPrint: Are users searching for product?
+
+```{r}
+# Web data within 0-6 hours of purchase
+relatedweb=read.csv("/Users/aishwaryatiwari/Desktop/Course Notes/ACC 882-Project Management/Project/Data/relatedweb.txt",header=TRUE,sep="\t")
+table_analysis = sqldf('SELECT purchase.productname, relatedweb.searchterm
+            FROM purchase
+            INNER JOIN relatedweb
+            ON purchase.panelistid = relatedweb.panelistid
+            AND purchase.shopperdate = relatedweb.shopperdate
+            WHERE relatedweb.searchterm != ""
+            GROUP BY purchase.productname')
+table_analysis$productname = tolower(table_analysis$productname)
+table_analysis$productname = str_trim(table_analysis$productname) #remove whitespace from start/end
+table_analysis$productname = str_replace_all(table_analysis$productname, "  ", "") #remove double whitespaces
+table_analysis$searchterm = str_trim(table_analysis$searchterm) #remove whitespace from start/end
+table_analysis$searchterm = str_replace_all(table_analysis$searchterm, "  ", "") #remove double whitespaces
+write.table(table_analysis,"table_analysis.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+# table_analysis$match <- sapply(table_analysis$product_name, function(x) grepl(gsub(" ", ".*",table_analysis$search_term),x))
+```
+
+
